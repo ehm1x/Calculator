@@ -1,35 +1,12 @@
+// Dear ImGui: standalone example application for DirectX 11
+// If you are new to Dear ImGui, read documentation from the docs/ folder + read the top of imgui.cpp.
+// Read online: https://github.com/ocornut/imgui/tree/master/docs
 
 #include "imgui.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
 #include <d3d11.h>
 #include <tchar.h>
-#include <vector>
-#include <string>
-
-
-void changenum(float x, bool first, float& num1, float& num2, bool decimal, int &placescount) {
-    if (first) {
-        if (!decimal) {
-            num1 *= 10;
-            num1 += x;
-        }
-        else {
-            num1 += x * pow(.1, placescount);
-            placescount++; 
-        }
-    }
-    else {
-        if (!decimal) {
-            num2 *= 10;
-            num2 += x;
-        }
-        else {
-            num2 += x * pow(.1, placescount);
-            placescount++;
-        }
-    }
-}
 
 // Data
 static ID3D11Device*            g_pd3dDevice = nullptr;
@@ -74,44 +51,50 @@ int main(int, char**)
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Multi-Viewport / Platform Windows
-   
-    
+    //io.ConfigViewportsNoAutoMerge = true;
+    //io.ConfigViewportsNoTaskBarIcon = true;
+    //io.ConfigViewportsNoDefaultParent = true;
+    //io.ConfigDockingAlwaysTabBar = true;
+    //io.ConfigDockingTransparentPayload = true;
+    //io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;     // FIXME-DPI: Experimental. THIS CURRENTLY DOESN'T WORK AS EXPECTED. DON'T USE IN USER APP!
+    //io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports; // FIXME-DPI: Experimental.
+
+    // Setup Dear ImGui style
     ImGui::StyleColorsDark();
-  
+    //ImGui::StyleColorsLight();
 
     // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
     ImGuiStyle& style = ImGui::GetStyle();
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
     {
-        style.WindowRounding = 3.0f;
+        style.WindowRounding = 0.0f;
         style.Colors[ImGuiCol_WindowBg].w = 1.0f;
     }
-    style.ButtonTextAlign = ImVec2(0.5f, 0.5f); 
-    
-    
 
     // Setup Platform/Renderer backends
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
 
-   
+    // Load Fonts
+    // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
+    // - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
+    // - If the file cannot be loaded, the function will return a nullptr. Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
+    // - The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
+    // - Use '#define IMGUI_ENABLE_FREETYPE' in your imconfig file to use Freetype for higher quality font rendering.
+    // - Read 'docs/FONTS.md' for more instructions and details.
+    // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
+    //io.Fonts->AddFontDefault();
+    //io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf", 18.0f);
+    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
+    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
+    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
+    //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
+    //IM_ASSERT(font != nullptr);
 
     // Our state
     bool show_demo_window = true;
     bool show_another_window = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-
-    bool first = true;
-    float num1 = 0.0f;
-    float num2 = 0.0f;
-    int iden = 0;
-    bool dot = false;
-    int placescount = 1;
-
-    int buttonx = 100;
-    int buttony = 100;
-
-  
 
     // Main loop
     bool done = false;
@@ -144,122 +127,43 @@ int main(int, char**)
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
-        ImGui::SetWindowSize(ImVec2(500, 300));
-    
-        if (ImGui::Begin("Test", NULL, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize)) {
+        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+        if (show_demo_window)
+            ImGui::ShowDemoWindow(&show_demo_window);
 
-            float newFontSize = 25.0f; // Change this value to your desired font size
-            io.Fonts->Fonts[0]->Scale = newFontSize / io.Fonts->Fonts[0]->FontSize;
+        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
+        {
+            static float f = 0.0f;
+            static int counter = 0;
 
-            ImGui::SetCursorPos(ImVec2(50, 50));
-            first == true ? ImGui::Text("%.4f", num1) : ImGui::Text("%.4f", num2);
+            ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
 
-            ImGui::SetCursorPosY(100.0); 
-            ImGui::Columns(4, nullptr, false);
-            ImGui::SetColumnWidth(0, 110.0f);
-            ImGui::SetColumnWidth(1, 110);
-            ImGui::SetColumnWidth(2, 110);
-            ImGui::SetColumnWidth(3, 110);
+            ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
+            ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
+            ImGui::Checkbox("Another Window", &show_another_window);
 
-            if (ImGui::Button("7", ImVec2(buttonx, buttony))) {
-                changenum(7, first, num1, num2, dot, placescount); 
-            }
-            if (ImGui::Button("4", ImVec2(buttonx, buttony))) {
-                changenum(4, first, num1, num2, dot, placescount);
-            }
-            if (ImGui::Button("1", ImVec2(buttonx, buttony))) {
-                changenum(1, first, num1, num2, dot, placescount);
-            }
-            if (ImGui::Button(".", ImVec2(buttonx, buttony))) {
-                dot = true;
-                
+            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+            ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
 
-            }
+            if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+                counter++;
+            ImGui::SameLine();
+            ImGui::Text("counter = %d", counter);
 
-            ImGui::NextColumn();
-
-            if (ImGui::Button("8", ImVec2(buttonx, buttony))) {
-                changenum(8, first, num1, num2, dot, placescount);
-            }
-            if (ImGui::Button("5", ImVec2(buttonx, buttony))) {
-                changenum(5, first, num1, num2, dot, placescount);
-            }
-            if (ImGui::Button("2", ImVec2(buttonx, buttony))) {
-                changenum(2, first, num1, num2, dot, placescount);
-            }
-            if (ImGui::Button("C", ImVec2(buttonx, buttony))) {
-                first = true;
-                num1 = 0.0f;
-                num2 = 0.0f;
-                iden = 0;
-                dot = false;
-                placescount = 1;
-            }
-
-            ImGui::NextColumn();
-
-            if (ImGui::Button("9", ImVec2(buttonx, buttony))) {
-                changenum(9, first, num1, num2, dot, placescount);
-            }
-            if (ImGui::Button("6", ImVec2(buttonx, buttony))) {
-                changenum(6, first, num1, num2, dot, placescount);
-            }
-            if (ImGui::Button("3", ImVec2(buttonx, buttony))) {
-                changenum(3, first, num1, num2, dot, placescount);
-            }
-            if (ImGui::Button("=", ImVec2(buttonx, buttony))) {
-                switch (iden) {
-                case 1:
-                    num1 /= num2;
-                    break;
-                case 2:
-                    num1 *= num2;
-                    break;
-
-                case 3:
-                    num1 -= num2;
-                    break;
-                case 4:
-                    num1 += num2;
-                    break;
-                }
-                num2 = 0;
-                first = true;
-
-            }
-
-            ImGui::NextColumn();
-
-            if (ImGui::Button("/", ImVec2(buttonx, buttony))) {
-                 dot = false;
-                 placescount = 1;
-                first = false;
-                iden = 1;
-            }
-            if (ImGui::Button("X", ImVec2(buttonx, buttony))) {
-                dot = false;
-                placescount = 1;
-                first = false;
-                iden = 2; 
-            }
-            if (ImGui::Button("-", ImVec2(buttonx, buttony))) {
-                 dot = false;
-                 placescount = 1;
-                first = false;
-                iden = 3; 
-            }
-            if (ImGui::Button("+", ImVec2(buttonx, buttony))) {
-                 dot = false;
-                 placescount = 1;
-                first = false;
-                iden = 4; 
-
-            }        
+            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+            ImGui::End();
         }
-        ImGui::End();
 
-   
-      
+        // 3. Show another simple window.
+        if (show_another_window)
+        {
+            ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+            ImGui::Text("Hello from another window!");
+            if (ImGui::Button("Close Me"))
+                show_another_window = false;
+            ImGui::End();
+        }
+
         // Rendering
         ImGui::Render();
         const float clear_color_with_alpha[4] = { clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w };
@@ -289,8 +193,6 @@ int main(int, char**)
 
     return 0;
 }
-
-
 
 // Helper functions
 bool CreateDeviceD3D(HWND hWnd)
@@ -351,8 +253,14 @@ void CleanupRenderTarget()
 #define WM_DPICHANGED 0x02E0 // From Windows SDK 8.1+ headers
 #endif
 
+// Forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+// Win32 message handler
+// You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
+// - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
+// - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application, or clear/overwrite your copy of the keyboard data.
+// Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
